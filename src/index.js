@@ -1,6 +1,8 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import FacebookLoginBar from "./FacebookLoginBar.js";
+import HighScores from "./HighScores.js";
 
 function Square(props) {
   return (
@@ -53,7 +55,9 @@ class Game extends React.Component {
         }
       ],
       stepNumber: 0,
-      xIsNext: true
+      xIsNext: true,
+      userId: "",
+      displayFacebookLoginBar: true
     };
   }
 
@@ -79,9 +83,37 @@ class Game extends React.Component {
   jumpTo(step) {
     this.setState({
       stepNumber: step,
-      xIsNext: (step % 2) === 0
+      xIsNext: step % 2 === 0
     });
   }
+
+  showUserId = data => {
+    this.setState({
+      userId: data,
+      displayFacebookLoginBar: false
+    });
+  };
+
+  postGame = async (player, score) => {
+    let data = new URLSearchParams();
+    data.append("player", player);
+    data.append("score", score);
+    const url = `http://ftw-highscores.herokuapp.com/tictactoe-dev`;
+    const response = await fetch(
+      url,
+
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: data.toString(),
+        json: true
+      }
+    );
+  };
+
+  
 
   render() {
     const history = this.state.history;
@@ -89,9 +121,7 @@ class Game extends React.Component {
     const winner = calculateWinner(current.squares);
 
     const moves = history.map((step, move) => {
-      const desc = move ?
-        'Go to move #' + move :
-        'Go to game start';
+      const desc = move ? "Go to move #" + move : "Go to game start";
       return (
         <li key={move}>
           <button onClick={() => this.jumpTo(move)}>{desc}</button>
@@ -102,19 +132,27 @@ class Game extends React.Component {
     let status;
     if (winner) {
       status = "Winner: " + winner;
+      this.postGame(this.player, this.score);
     } else {
       status = "Next player: " + (this.state.xIsNext ? "X" : "O");
     }
 
     return (
       <div className="game">
+        <div>
+          {this.state.displayFacebookLoginBar ? (
+            <FacebookLoginBar userId={id => this.showUserId(id)} />
+          ) : (
+            <div>{this.state.userId}</div>
+          )}
+        </div>
         <div className="game-board">
-          <Board
-            squares={current.squares}
-            onClick={i => this.handleClick(i)}
-          />
+          <Board squares={current.squares} onClick={i => this.handleClick(i)} />
         </div>
         <div className="game-info">
+          <div>
+            <HighScores />
+          </div>
           <div>{status}</div>
           <ol>{moves}</ol>
         </div>
